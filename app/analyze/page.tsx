@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { getPendingInput, clearPendingInput } from '@/lib/pendingAnalysis';
 import AnalysisResult, { type AnalysisResultProps } from '@/components/AnalysisResult';
-import { generateReportPdf } from '@/lib/pdf-generator';
+
 import AppNavbar from '@/components/AppNavbar';
 import type { User } from '@supabase/supabase-js';
 
