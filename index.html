@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pikwisely — Know Before You Sell</title>
+  <meta name="description" content="Pikwisely analyzes Amazon and Flipkart product reviews using AI and delivers full seller analysis reports in seconds." />
+  <meta name="keywords" content="Amazon review analysis, Flipkart review analysis, AI product reviews, seller tool, review analyzer" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            accent: {
+              50:  '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+          },
+          keyframes: {
+            fadeUp: {
+              '0%':   { opacity: '0', transform: 'translateY(24px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            shimmer: {
+              '0%':   { backgroundPosition: '-200% center' },
+              '100%': { backgroundPosition: '200% center' },
+            },
+            floatA: {
+              '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+              '50%':      { transform: 'translateY(-18px) rotate(3deg)' },
+            },
+            floatB: {
+              '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+              '50%':      { transform: 'translateY(-12px) rotate(-2deg)' },
+            },
+            scrollBounce: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%':      { transform: 'translateY(8px)' },
+            },
+          },
+          animation: {
+            'fade-up':   'fadeUp 0.7s ease-out forwards',
+            'fade-up-2': 'fadeUp 0.7s 0.15s ease-out forwards',
+            'fade-up-3': 'fadeUp 0.7s 0.30s ease-out forwards',
+            'fade-up-4': 'fadeUp 0.7s 0.45s ease-out forwards',
+            'fade-up-5': 'fadeUp 0.7s 0.60s ease-out forwards',
+            'float-a':   'floatA 6s ease-in-out infinite',
+            'float-b':   'floatB 8s ease-in-out infinite',
+            'scroll-bounce': 'scrollBounce 1.6s ease-in-out infinite',
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #f3f5ff;
+      background-image:
+        radial-gradient(at 18% 18%, hsla(220,80%,92%,1) 0px, transparent 55%),
+        radial-gradient(at 82% 10%, hsla(260,70%,93%,1) 0px, transparent 50%),
+        radial-gradient(at 50% 85%, hsla(200,60%,94%,1) 0px, transparent 55%),
+        radial-gradient(at 8%  72%, hsla(240,60%,95%,1) 0px, transparent 50%),
+        radial-gradient(at 90% 60%, hsla(210,70%,93%,1) 0px, transparent 45%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Fade-up starts invisible */
+    .animate-fade-up,
+    .animate-fade-up-2,
+    .animate-fade-up-3,
+    .animate-fade-up-4,
+    .animate-fade-up-5 { opacity: 0; }
+
+    /* ─── Glass Surfaces ────────────────────────────────── */
+    .glass {
+      background: rgba(255,255,255,0.45);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid rgba(255,255,255,0.65);
+      box-shadow: 0 4px 24px rgba(99,102,241,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .glass-strong {
+      background: rgba(255,255,255,0.62);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.78);
+      box-shadow: 0 8px 40px rgba(99,102,241,0.11), 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    /* ─── Navbar ────────────────────────────────────────── */
+    #navbar {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+      border-bottom: 1px solid rgba(255,255,255,0.72);
+      box-shadow: 0 1px 16px rgba(99,102,241,0.06);
+      transition: box-shadow 0.3s ease, background 0.3s ease;
+    }
+    #navbar.scrolled {
+      background: rgba(255,255,255,0.78);
+      box-shadow: 0 2px 24px rgba(99,102,241,0.11);
+    }
+
+    /* ─── Logo gradient ─────────────────────────────────── */
+    .logo-text {
+      background: linear-gradient(135deg, #4338ca 0%, #6366f1 55%, #818cf8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ─── Headline shimmer ──────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    .headline-accent {
+      background: linear-gradient(90deg, #4338ca 0%, #6366f1 30%, #a5b4fc 55%, #6366f1 75%, #4338ca 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 4s linear infinite;
+    }
+
+    /* ─── Input ─────────────────────────────────────────── */
+    #analysis-input {
+      background: rgba(255,255,255,0.72);
+      border: 1.5px solid rgba(255,255,255,0.82);
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    }
+    #analysis-input:focus {
+      background: rgba(255,255,255,0.92);
+      border-color: rgba(99,102,241,0.55);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.12), 0 4px 20px rgba(99,102,241,0.10);
+    }
+    #analysis-input::placeholder { color: #a5b4fc; }
+
+    /* ─── CTA Button ────────────────────────────────────── */
+    #cta-btn {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      box-shadow: 0 4px 16px rgba(99,102,241,0.32), 0 1px 4px rgba(99,102,241,0.15);
+      border: 1px solid rgba(255,255,255,0.22);
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    #cta-btn:hover {
+      background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+      box-shadow: 0 8px 30px rgba(99,102,241,0.48), 0 2px 8px rgba(99,102,241,0.20);
+      transform: translateY(-2px) scale(1.015);
+    }
+    #cta-btn:active  { transform: translateY(0) scale(0.99); }
+    #cta-btn:disabled { opacity: 0.75; cursor: not-allowed; transform: none; }
+
+    /* ─── Chip hover ────────────────────────────────────── */
+    .chip {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.70);
+      box-shadow: 0 2px 10px rgba(99,102,241,0.07);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.14);
+    }
+
+    /* ─── Badge pill ────────────────────────────────────── */
+    .badge-pill {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.72);
+      box-shadow: 0 4px 20px rgba(99,102,241,0.10);
+    }
+
+    /* ─── Floating blobs ────────────────────────────────── */
+    @keyframes floatA {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50%       { transform: translateY(-18px) rotate(3deg); }
+    }
+    @keyframes floatB {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50%       { transform: translateY(-12px) rotate(-2deg); }
+    }
+    .blob-a { animation: floatA 6s ease-in-out infinite; }
+    .blob-b { animation: floatB 8s ease-in-out infinite; }
+
+    /* ─── Scroll indicator ──────────────────────────────── */
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(8px); }
+    }
+    .scroll-dot { animation: scrollBounce 1.6s ease-in-out infinite; }
+
+    /* ─── Responsive input stacking ─────────────────────── */
+    @media (max-width: 600px) {
+      #input-row { flex-direction: column; gap: 0.75rem; }
+      #cta-btn   { width: 100%; justify-content: center; }
+    }
+
+    /* ─── Nav link hover ────────────────────────────────── */
+    .nav-link {
+      color: #64748b;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      text-decoration: none;
+    }
+    .nav-link:hover { color: #4f46e5; }
+  </style>
+</head>
+
+<body class="antialiased">
+
+  <!-- ░░░ FLOATING BACKGROUND BLOBS ░░░ -->
+  <div aria-hidden="true"
+       style="position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
+    <div class="blob-a" style="position:absolute;width:420px;height:420px;border-radius:50%;
+        background:rgba(165,180,252,0.28);filter:blur(70px);top:-100px;left:-80px;"></div>
+    <div class="blob-b" style="position:absolute;width:340px;height:340px;border-radius:50%;
+        background:rgba(196,181,253,0.22);filter:blur(60px);top:8%;right:-50px;animation-delay:1s;"></div>
+    <div class="blob-a" style="position:absolute;width:300px;height:300px;border-radius:50%;
+        background:rgba(147,197,253,0.20);filter:blur(65px);bottom:4%;left:18%;animation-delay:2s;"></div>
+    <div class="blob-b" style="position:absolute;width:280px;height:280px;border-radius:50%;
+        background:rgba(167,139,250,0.18);filter:blur(60px);bottom:8%;right:8%;animation-delay:0.5s;"></div>
+  </div>
+
+  <!-- ░░░ STICKY NAVBAR ░░░ -->
+  <nav id="navbar" style="position:fixed;top:0;left:0;right:0;z-index:50;">
+    <div style="max-width:1152px;margin:0 auto;padding:0 1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:64px;">
+
+        <!-- Logo -->
+        <a href="#" id="logo-link" style="display:flex;align-items:center;gap:10px;text-decoration:none;" aria-label="Pikwisely home">
+          <img src="logo.png" alt="Pikwisely Logo" style="width: 38px; height: 38px; border-radius: 12px; object-fit: contain;" />
+          <span class="logo-text" style="font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;">Pikwisely</span>
+        </a>
+
+        <!-- Desktop nav links -->
+        <div id="desktop-nav" style="display:flex;align-items:center;gap:28px;">
+          <a href="#how-it-works" class="nav-link">How it works</a>
+          <a href="#sample-report" class="nav-link">Features</a>
+          <a href="pricing.html" class="nav-link" id="nav-pricing-link">Pricing</a>
+        </div>
+
+        <!-- Right side -->
+        <div style="display:flex;align-items:center;gap:12px;">
+          <a href="#" class="nav-link" id="signin-link">Sign in</a>
+          <a href="#analysis-input" id="nav-cta-btn"
+             style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:12px;
+                    font-size:0.875rem;font-weight:700;color:#fff;text-decoration:none;
+                    background:linear-gradient(135deg,#4f46e5,#6366f1);
+                    box-shadow:0 4px 14px rgba(99,102,241,0.35);
+                    transition:transform 0.2s,box-shadow 0.2s;">
+            Try Free
+            <svg width="14" height="14" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </a>
+          <!-- Hamburger (mobile) -->
+          <button id="mobile-menu-btn"
+            style="display:none;padding:8px;border:none;background:transparent;border-radius:8px;cursor:pointer;color:#64748b;"
+            aria-label="Open menu" aria-expanded="false">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" style="display:none;padding-bottom:16px;border-top:1px solid rgba(255,255,255,0.50);">
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+          <a href="#how-it-works" style="padding:10px 12px;border-radius:10px;font-size:0.875rem;font-weight:500;color:#475569;text-decoration:none;">How it works</a>
+          <a href="#sample-report" style="padding:10px 12px;border-radius:10px;font-size:0.875rem;font-weight:500;color:#475569;text-decoration:none;">Features</a>
+          <a href="pricing.html" style="padding:10px 12px;border-radius:10px;font-size:0.875rem;font-weight:500;color:#4f46e5;text-decoration:none;font-weight:600;">Pricing</a>
+          <a href="#" style="padding:10px 12px;border-radius:10px;font-size:0.875rem;font-weight:500;color:#475569;text-decoration:none;">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ░░░ HERO SECTION ░░░ -->
+  <main>
+    <section id="hero"
+      style="position:relative;min-height:100vh;display:flex;flex-direction:column;
+             align-items:center;justify-content:center;z-index:10;
+             padding:96px 24px 80px;text-align:center;">
+
+      <!-- Eyebrow badge -->
+      <div class="badge-pill animate-fade-up"
+           style="display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:9999px;margin-bottom:32px;">
+        <span style="position:relative;display:flex;width:8px;height:8px;">
+          <span style="position:absolute;display:inline-flex;width:100%;height:100%;border-radius:50%;
+                       background:#6366f1;opacity:0.75;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></span>
+          <span style="position:relative;display:inline-flex;width:8px;height:8px;border-radius:50%;background:#6366f1;"></span>
+        </span>
+        <span style="font-size:0.7rem;font-weight:700;color:#4338ca;letter-spacing:0.08em;text-transform:uppercase;">
+          AI-Powered Review Intelligence
+        </span>
+      </div>
+      <style>
+        @keyframes ping {
+          75%, 100% { transform: scale(2); opacity: 0; }
+        }
+      </style>
+
+      <!-- Headline -->
+      <div class="animate-fade-up-2" style="max-width:700px;margin:0 auto 20px;">
+        <h1 style="font-size:clamp(2.8rem,7vw,4.5rem);font-weight:900;line-height:1.04;
+                   letter-spacing:-0.03em;color:#0f172a;">
+          Know Before<br/>
+          <span class="headline-accent">You Sell.</span>
+        </h1>
+      </div>
+
+      <!-- Subheadline -->
+      <div class="animate-fade-up-3" style="max-width:500px;margin:0 auto 40px;">
+        <p style="font-size:clamp(1rem,2.5vw,1.125rem);color:#64748b;font-weight:400;line-height:1.7;">
+          Paste a product link or reviews — get a full AI&nbsp;analysis in&nbsp;seconds.
+          Understand what your customers <em>really</em> think.
+        </p>
+      </div>
+
+      <!-- Glass Input Card -->
+      <div class="glass-strong animate-fade-up-4"
+           style="width:100%;max-width:680px;border-radius:20px;padding:16px;margin-bottom:16px;">
+
+        <!-- Input row -->
+        <div id="input-row" style="display:flex;align-items:center;gap:12px;">
+          <label for="analysis-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+            Paste product URL or reviews
+          </label>
+          <!-- Input with icon -->
+          <div style="flex:1;position:relative;">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:#a5b4fc;" aria-hidden="true">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656
+                     l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+              </svg>
+            </span>
+            <input
+              id="analysis-input"
+              type="text"
+              placeholder="Paste product URL or reviews here…"
+              style="width:100%;padding:14px 16px 14px 42px;border-radius:12px;
+                     font-size:0.95rem;font-weight:500;color:#334155;
+                     -webkit-appearance:none;appearance:none;"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <!-- Analyze button -->
+          <button id="cta-btn" type="button"
+            style="flex-shrink:0;display:inline-flex;align-items:center;gap:8px;
+                   padding:14px 28px;border-radius:12px;font-size:0.95rem;font-weight:700;
+                   color:#fff;white-space:nowrap;border:none;">
+            Analyze Now
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Supported platforms -->
+        <div style="margin-top:12px;padding:0 4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.75rem;color:#94a3b8;font-weight:500;">Works with</span>
+
+          <!-- Amazon -->
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;
+                       background:rgba(255,237,213,0.6);border:1px solid rgba(253,186,116,0.4);
+                       font-size:0.72rem;font-weight:700;color:#c2410c;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M13.23 10.56v-.45c-.96.02-1.97.04-2.96.2-.99.16-1.78.6-2.09 1.38-.2.5-.14 1.08.18 1.54.53.72 1.4.8 2.23.65.75-.14 1.43-.5 1.96-1.06.57-.6.68-1.26.68-1.26zm7.27 6.17c-.14.1-.34.1-.5.02-1.72-1.42-2.03-2.08-2.97-3.43-1.85 1.87-3.15 2.43-5.54 2.43-2.83 0-5.03-1.74-5.03-5.23 0-2.72 1.47-4.57 3.68-5.47 1.87-.78 4.49-.92 6.49-1.14v-.43c0-.79.06-1.72-.4-2.4-.4-.6-1.17-.85-1.84-.85-1.25 0-2.37.64-2.64 1.97-.06.28-.27.55-.55.57L8.1 2.6C7.8 2.54 7.47 2.3 7.56 1.89 8.3-.23 10.24-.89 12.06-.89c.93 0 2.15.25 2.88.94C15.8.79 15.8 2.32 15.8 3.66v5.5c0 1.65.69 2.38 1.33 3.27.23.32.28.7.01.93l-2.64 2.37z"/>
+            </svg>
+            Amazon
+          </span>
+
+          <!-- Flipkart -->
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;
+                       background:rgba(219,234,254,0.6);border:1px solid rgba(147,197,253,0.4);
+                       font-size:0.72rem;font-weight:700;color:#1d4ed8;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-5h2v5zm0-7h-2V7h2v2z"/>
+            </svg>
+            Flipkart
+          </span>
+
+          <span style="font-size:0.72rem;color:#94a3b8;font-weight:400;">or paste reviews directly</span>
+        </div>
+      </div>
+
+
+      <!-- Feature chips -->
+      <div class="animate-fade-up-5"
+           style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:660px;margin:0 auto 56px;">
+
+        <img src="logo.png" alt="Pikwisely Logo" style="width: 34px; height: 34px; border-radius: 12px; object-fit: contain;" />
+        <span style="font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;
+                     background:linear-gradient(135deg,#4338ca 0%,#6366f1 55%,#818cf8 100%);
+                     -webkit-background-clip:text;background-clip:text;
+                     -webkit-text-fill-color:transparent;">
+          Pikwisely
+        </span>
+      </a>
+
+      <!-- Nav links -->
+      <nav aria-label="Footer navigation">
+        <ul id="footer-links"
+            style="list-style:none;padding:0;margin:0;
+                   display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;">
+          <li>
+            <a href="pricing.html" style="padding:6px 12px;border-radius:8px;font-size:0.82rem;
+                                      font-weight:500;color:#64748b;text-decoration:none;
+                                      transition:color 0.2s,background 0.2s;"
+               onmouseenter="this.style.color='#4f46e5';this.style.background='rgba(238,242,255,0.70)'"
+               onmouseleave="this.style.color='#64748b';this.style.background=''">Pricing</a>
+          </li>
+          <li style="width:1px;height:14px;background:rgba(203,213,225,0.60);margin:0 2px;" aria-hidden="true"></li>
+          <li>
+            <a href="#how-it-works" style="padding:6px 12px;border-radius:8px;font-size:0.82rem;
+                                           font-weight:500;color:#64748b;text-decoration:none;
+                                           transition:color 0.2s,background 0.2s;"
+               onmouseenter="this.style.color='#4f46e5';this.style.background='rgba(238,242,255,0.70)'"
+               onmouseleave="this.style.color='#64748b';this.style.background=''">How It Works</a>
+          </li>
+          <li style="width:1px;height:14px;background:rgba(203,213,225,0.60);margin:0 2px;" aria-hidden="true"></li>
+          <li>
+            <a href="mailto:hello@pikwisely.site" style="padding:6px 12px;border-radius:8px;font-size:0.82rem;
+                                                        font-weight:500;color:#64748b;text-decoration:none;
+                                                        transition:color 0.2s,background 0.2s;"
+               onmouseenter="this.style.color='#4f46e5';this.style.background='rgba(238,242,255,0.70)'"
+               onmouseleave="this.style.color='#64748b';this.style.background=''">Contact</a>
+          </li>
+          <li style="width:1px;height:14px;background:rgba(203,213,225,0.60);margin:0 2px;" aria-hidden="true"></li>
+          <li>
+            <a href="#" style="padding:6px 12px;border-radius:8px;font-size:0.82rem;
+                               font-weight:500;color:#64748b;text-decoration:none;
+                               transition:color 0.2s,background 0.2s;"
+               onmouseenter="this.style.color='#4f46e5';this.style.background='rgba(238,242,255,0.70)'"
+               onmouseleave="this.style.color='#64748b';this.style.background=''">Privacy Policy</a>
+          </li>
+          <li style="width:1px;height:14px;background:rgba(203,213,225,0.60);margin:0 2px;" aria-hidden="true"></li>
+          <li>
+            <a href="#" style="padding:6px 12px;border-radius:8px;font-size:0.82rem;
+                               font-weight:500;color:#64748b;text-decoration:none;
+                               transition:color 0.2s,background 0.2s;"
+               onmouseenter="this.style.color='#4f46e5';this.style.background='rgba(238,242,255,0.70)'"
+               onmouseleave="this.style.color='#64748b';this.style.background=''">Terms</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Thin separator -->
+    <div style="height:1px;background:rgba(226,232,240,0.55);margin-bottom:20px;"></div>
+
+    <!-- Bottom row: disclaimer + copyright -->
+    <div id="footer-bottom-row"
+         style="display:flex;align-items:flex-start;justify-content:space-between;
+                flex-wrap:wrap;gap:12px;">
+
+      <!-- Disclaimer -->
+      <p style="font-size:0.73rem;color:#94a3b8;font-weight:400;line-height:1.6;
+                max-width:580px;margin:0;">
+        Pikwisely provides analysis based on available review data and is intended as a
+        decision-support tool, not financial advice.
+      </p>
+
+      <!-- Copyright -->
+      <p style="font-size:0.73rem;color:#94a3b8;font-weight:500;margin:0;white-space:nowrap;">
+        © 2026 Pikwisely. All rights reserved.
+      </p>
+    </div>
+
+  </div>
+</footer>
+
+<!-- Footer responsive styles -->
+<style>
+  @media (max-width: 640px) {
+    #footer-main-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #footer-bottom-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #final-cta div[style*="padding:60px"] {
+      padding: 40px 24px 36px !important;
+    }
+  }
+</style>
+
+</body>
+</html>
