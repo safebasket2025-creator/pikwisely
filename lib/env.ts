@@ -104,11 +104,27 @@ export const serverEnv = _serverEnv;
 // These NEXT_PUBLIC_* variables are inlined by Next.js at build time and are
 // visible to the browser. Do NOT add any secret key here.
 
+function requireClient(key: string, value: string | undefined): string {
+  if (!value || value.trim() === '') {
+    throw new Error(
+      `[Pikwisely] Missing required environment variable: "${key}"\n` +
+      `  -> Check your .env.local file and make sure "${key}" is set.\n` +
+      `  -> See .env.example for reference values.`
+    );
+  }
+  return value.trim();
+}
+
+function optionalClient(value: string | undefined, fallback: string): string {
+  return value && value.trim() !== '' ? value.trim() : fallback;
+}
+
 export const clientEnv = {
-  NEXT_PUBLIC_SUPABASE_URL: required('NEXT_PUBLIC_SUPABASE_URL'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  NEXT_PUBLIC_APP_URL: optional('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
-  NEXT_PUBLIC_APP_NAME: optional('NEXT_PUBLIC_APP_NAME', 'Pikwisely'),
+  NEXT_PUBLIC_SUPABASE_URL: requireClient('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: requireClient('NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  NEXT_PUBLIC_APP_URL: optionalClient(process.env.NEXT_PUBLIC_APP_URL, 'http://localhost:3000'),
+  NEXT_PUBLIC_APP_NAME: optionalClient(process.env.NEXT_PUBLIC_APP_NAME, 'Pikwisely'),
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: optionalClient(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, ''),
 } as const;
 
 // ─── Type exports (useful for typed access in tests) ─────────────────────────

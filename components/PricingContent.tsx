@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import Script from 'next/script';
+import { clientEnv } from '@/lib/env';
 import FAQ from './FAQ';
 
 const plans = [
@@ -59,14 +61,19 @@ export default function PricingContent() {
   const router = useRouter();
   const supabase = createClient();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
+      if (session?.user) {
+        setUser(session.user);
+      }
     });
   }, [supabase]);
 
-  const handlePlanClick = (e: React.MouseEvent, planName: string) => {
+  const handlePlanClick = async (e: React.MouseEvent, planName: string) => {
     e.preventDefault();
     if (isLoggedIn === null) return; // wait for session
 
@@ -77,13 +84,63 @@ export default function PricingContent() {
 
     if (planName === 'Free') {
       router.push('/analyze');
-    } else {
-      alert("Payments coming soon! We'll notify you when upgrades are available.");
+      return;
+    }
+
+    // Razorpay flow for Starter / Pro
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const plan = planName.toLowerCase();
+      const res = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, userId: user?.id })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create order');
+      }
+
+      const options = {
+        key: clientEnv.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: plan === 'starter' ? 49900 : 149900,
+        currency: 'INR',
+        name: clientEnv.NEXT_PUBLIC_APP_NAME,
+        description: `Upgrade to ${planName} Plan`,
+        order_id: data.order_id,
+        prefill: {
+          email: user?.email
+        },
+        handler: function (response: any) {
+          // payment success
+          alert('Payment successful! Redirecting to dashboard...');
+          router.push('/analyze');
+        },
+        theme: {
+          color: '#6366f1'
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any){
+        console.error(response.error);
+        alert("Payment failed! Please try again.");
+      });
+      rzp.open();
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong creating the order.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <main>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {/* Floating blobs */}
       <div aria-hidden="true" style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
         <div className="blob-a" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'rgba(165,180,252,0.24)', filter: 'blur(80px)', top: -120, left: -80 }} />
