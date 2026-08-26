@@ -28,6 +28,8 @@ export default function AnalyzePage() {
   const [isDownloading,  setIsDownloading]  = useState(false);
   const [downloadError,  setDownloadError]  = useState<string | null>(null);
   const [signingOut, setSigningOut]         = useState(false);
+  const [inputTextLength, setInputTextLength] = useState(0);
+  const [analyzeWarning, setAnalyzeWarning] = useState<string>('');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -52,6 +54,7 @@ export default function AnalyzePage() {
     if (!btn) return;
 
     setAnalyzeError('');
+    setAnalyzeWarning('');
     setAnalysisResult(null);
     setIsAnalyzing(true);
     btn.disabled = true;
@@ -63,7 +66,7 @@ export default function AnalyzePage() {
         body: JSON.stringify({ input: val }),
       });
 
-      const data = await res.json() as AnalysisResultProps & { error?: string; code?: string; creditsRemaining?: number };
+      const data = await res.json() as AnalysisResultProps & { error?: string; code?: string; creditsRemaining?: number; warning?: string };
 
       if (!res.ok) {
         if (data.code === 'OUT_OF_CREDITS' && reportsLimit !== null) {
@@ -73,6 +76,7 @@ export default function AnalyzePage() {
       }
 
       setAnalysisResult(data);
+      if (data.warning) setAnalyzeWarning(data.warning);
       if (data.creditsRemaining !== undefined && data.creditsRemaining !== null && reportsLimit !== null && reportsLimit !== -1) {
         setReportsUsed(reportsLimit - data.creditsRemaining);
       }
@@ -223,11 +227,21 @@ export default function AnalyzePage() {
                 style={{ width: '100%', padding: '16px', borderRadius: 14, fontSize: '0.95rem', fontWeight: 500, color: '#334155', background: 'rgba(255,255,255,0.72)', border: '1.5px solid rgba(255,255,255,0.82)', outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.25s, box-shadow 0.25s, background 0.25s', resize: 'vertical', minHeight: 140, boxSizing: 'border-box' }}
                 autoComplete="off"
                 spellCheck={false}
+                onChange={e => setInputTextLength(e.target.value.length)}
                 onFocus={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.12), 0 4px 20px rgba(99,102,241,0.10)'; }}
                 onBlur={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.72)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.82)'; e.currentTarget.style.boxShadow = ''; }}
               />
             </div>
             
+            {inputTextLength > 8000 && (
+              <div className="animate-fade-in" style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(254,243,199,0.7)', border: '1px solid rgba(253,230,138,0.9)', fontSize: '0.85rem', color: '#b45309', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span style={{ fontWeight: 500 }}>Large input detected — for best results, consider pasting 100-150 reviews at a time.</span>
+              </div>
+            )}
+
             {/* Credit Counter */}
             {reportsLimit !== null && reportsUsed !== null && remainingCredits !== null && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-[10px_14px] rounded-xl bg-white/70 border border-slate-200/80 text-[0.85rem] font-semibold">
@@ -443,6 +457,15 @@ export default function AnalyzePage() {
               </div>
             </div>
             
+            {analyzeWarning && (
+              <div className="animate-fade-up" style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 14, background: 'rgba(254,243,199,0.7)', border: '1px solid rgba(253,230,138,0.9)', fontSize: '0.9rem', color: '#b45309', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 2 }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <p style={{ margin: 0, fontWeight: 500, lineHeight: 1.5 }}>{analyzeWarning}</p>
+              </div>
+            )}
+
             <div id="report-capture-area" style={{ padding: '8px', background: '#f8fafc', borderRadius: '24px', margin: '-8px' }}>
               <AnalysisResult {...analysisResult} />
             </div>

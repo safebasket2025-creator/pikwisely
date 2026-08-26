@@ -1,8 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { serverEnv } from '@/lib/env';
+import { adminRatelimit } from '@/lib/rate-limit';
 
-export async function POST(req: Request) {
+// ─── Allowed bounds for credit adjustment ──────────────────────────────────────
+const MAX_ADJUSTMENT = 1000;  // ±1 000 credits per operation
+const MAX_REASON_LENGTH = 500;
+
+export async function POST(req: NextRequest) {
   try {
     const supabaseSessionClient = await createClient();
     const { data: { session } } = await supabaseSessionClient.auth.getSession();
@@ -18,31 +24,77 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { email, amount, reason } = await req.json();
-
-    if (!email || typeof amount !== 'number' || !reason) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // ── Rate limiting ──────────────────────────────────────────────────────────
+    try {
+      const { success } = await adminRatelimit.limit(session.user.id);
+      if (!success) {
+        return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
+      }
+    } catch (err) {
+      console.error('[admin/adjust-credits] Rate limit error:', err);
     }
 
-    // Use service role client to bypass RLS for administrative actions
+    // ── Parse & validate body ──────────────────────────────────────────────────
+    const body = await req.json();
+    const { email, amount, reason } = body;
+
+    // Email format
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return NextResponse.json({ error: 'A valid target email address is required.' }, { status: 400 });
+    }
+
+    // Amount: must be a finite integer within allowed bounds, non-zero
+    if (
+      typeof amount !== 'number' ||
+      !Number.isFinite(amount) ||
+      !Number.isInteger(amount) ||
+      amount === 0 ||
+      Math.abs(amount) > MAX_ADJUSTMENT
+    ) {
+      return NextResponse.json(
+        { error: `Amount must be a non-zero integer between -${MAX_ADJUSTMENT} and ${MAX_ADJUSTMENT}.` },
+        { status: 400 }
+      );
+    }
+
+    // Reason: required string, reasonable max length
+    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
+      return NextResponse.json({ error: 'A reason is required.' }, { status: 400 });
+    }
+    if (reason.length > MAX_REASON_LENGTH) {
+      return NextResponse.json(
+        { error: `Reason must be ${MAX_REASON_LENGTH} characters or fewer.` },
+        { status: 400 }
+      );
+    }
+
+    // ── Admin Supabase client (uses serverEnv, not bare process.env) ───────────
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      serverEnv.SUPABASE_SERVICE_ROLE_KEY
     );
 
     // Get target user
     const { data: targetProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, reports_limit')
-      .eq('email', email.toLowerCase())
+      .eq('email', email.trim().toLowerCase())
       .single();
 
     if (profileError || !targetProfile) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
     const currentLimit = targetProfile.reports_limit || 0;
     const newLimit = currentLimit + amount;
+
+    // Prevent limit from going below zero
+    if (newLimit < 0) {
+      return NextResponse.json(
+        { error: `Adjustment would result in a negative credit limit (${newLimit}). Reduce the amount.` },
+        { status: 400 }
+      );
+    }
 
     // Update user credits
     const { error: updateError } = await supabaseAdmin
@@ -51,28 +103,29 @@ export async function POST(req: Request) {
       .eq('id', targetProfile.id);
 
     if (updateError) {
-      throw new Error(`Failed to update profile: ${updateError.message}`);
+      console.error('[admin/adjust-credits] Failed to update profile:', updateError);
+      throw new Error('Failed to update profile credits.');
     }
 
     // Log the action
     const { error: logError } = await supabaseAdmin
       .from('admin_actions')
       .insert({
-        admin_email: session.user.email,
-        target_user_email: email,
-        action_type: 'credit_adjustment',
-        amount_changed: amount,
-        reason: reason
+        admin_email:       session.user.email,
+        target_user_email: email.trim().toLowerCase(),
+        action_type:       'credit_adjustment',
+        amount_changed:    amount,
+        reason:            reason.trim(),
       });
 
     if (logError) {
-      console.error('Failed to log admin action:', logError);
-      // We don't fail the request here, but log it
+      console.error('[admin/adjust-credits] Failed to log admin action:', logError);
+      // Non-fatal — the credit update succeeded
     }
 
     return NextResponse.json({ success: true, newLimit });
-  } catch (error: any) {
-    console.error('Admin API error:', error);
+  } catch (error: unknown) {
+    console.error('[admin/adjust-credits] Unhandled error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

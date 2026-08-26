@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { serverEnv } from '@/lib/env';
 
 export default async function AdminFeedbackPage() {
   const supabase = await createClient();
 
-  const supabaseAdmin = require('@supabase/supabase-js').createClient(
+  const supabaseAdmin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    serverEnv.SUPABASE_SERVICE_ROLE_KEY
   );
 
   let feedbacks: any[] = [];

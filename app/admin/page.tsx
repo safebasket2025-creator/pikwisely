@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase-server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { serverEnv } from '@/lib/env';
 
 export default async function AdminOverviewPage() {
   const supabase = await createClient();
 
   // We need to bypass RLS to count all users and reports
-  const supabaseAdmin = require('@supabase/supabase-js').createClient(
+  const supabaseAdmin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    serverEnv.SUPABASE_SERVICE_ROLE_KEY
   );
 
   let totalUsers = 0;
