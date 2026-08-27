@@ -80,12 +80,12 @@ export async function POST(req: Request) {
           expectedAmount = 149900;
         }
 
-        // Use base_amount if an offer was applied, otherwise fallback to amount.
-        const actualAmountPaise = paymentEntity.base_amount || paymentEntity.amount || 0;
+        // Strictly check the actual captured amount (ignore base_amount which represents pre-discount price)
+        const actualAmountPaise = paymentEntity.amount || 0;
         
-        // If amount doesn't match the plan's expected amount, flag it and abort upgrade
+        // If amount doesn't match the plan's expected amount exactly, flag it and abort upgrade
         if (actualAmountPaise !== expectedAmount) {
-          console.warn(`[Webhook] Mismatched payment amount for ${plan}. Expected: ${expectedAmount}, Got: ${actualAmountPaise}`);
+          console.warn(`[Webhook] Mismatched/underpaid payment for ${plan}. Expected: ${expectedAmount}, Got: ${actualAmountPaise}`);
           
           await supabaseAdmin.from('payments').insert({
             user_id: userId,
