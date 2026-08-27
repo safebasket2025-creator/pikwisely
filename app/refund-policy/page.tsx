@@ -33,7 +33,7 @@ export default function RefundPolicyPage() {
             <p style={{ margin: 0 }}>This ensures refunds are for genuine cases where the tool wasn&apos;t right for you — not after substantial use.</p>
 
             <p style={{ margin: 0 }}>
-              <strong style={{ color: '#0f172a' }}>How to request:</strong> Email <a href="mailto:support@pikwisely.site" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>support@pikwisely.site</a> with your registered account email and order details. We&apos;ll process approved refunds within 5-7 business days to your original payment method.
+              <strong style={{ color: '#0f172a' }}>How to request:</strong> Email <a href="mailto:supportpikwisely@gmail.com" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>supportpikwisely@gmail.com</a> with your registered account email and order details. We&apos;ll process approved refunds within 5-7 business days to your original payment method.
             </p>
 
             <p style={{ margin: 0 }}>
@@ -45,7 +45,7 @@ export default function RefundPolicyPage() {
             </p>
 
             <p style={{ margin: 0 }}>
-              <strong style={{ color: '#0f172a' }}>Questions?</strong> Reach out to us at <a href="mailto:support@pikwisely.site" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>support@pikwisely.site</a> — we&apos;re happy to help.
+              <strong style={{ color: '#0f172a' }}>Questions?</strong> Reach out to us at <a href="mailto:supportpikwisely@gmail.com" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>supportpikwisely@gmail.com</a> — we&apos;re happy to help.
             </p>
           </div>
         </div>

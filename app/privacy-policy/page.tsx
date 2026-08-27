@@ -46,7 +46,7 @@ export default function PrivacyPolicyPage() {
 
             <div>
               <strong style={{ color: '#0f172a', fontSize: '1.2rem', display: 'block', marginBottom: 8 }}>Your Rights</strong>
-              You may request account deletion or data export by contacting <a href="mailto:support@pikwisely.site" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>support@pikwisely.site</a>.
+              You may request account deletion or data export by contacting <a href="mailto:supportpikwisely@gmail.com" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>supportpikwisely@gmail.com</a>.
             </div>
 
             <div>
@@ -56,7 +56,7 @@ export default function PrivacyPolicyPage() {
 
             <div>
               <strong style={{ color: '#0f172a', fontSize: '1.2rem', display: 'block', marginBottom: 8 }}>Contact</strong>
-              For privacy questions, email <a href="mailto:support@pikwisely.site" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>support@pikwisely.site</a>.
+              For privacy questions, email <a href="mailto:supportpikwisely@gmail.com" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>supportpikwisely@gmail.com</a>.
             </div>
           </div>
         </div>

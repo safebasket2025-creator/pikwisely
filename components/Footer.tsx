@@ -3,7 +3,7 @@ import Link from 'next/link';
 const footerLinks = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/#how-it-works', label: 'How It Works' },
-  { href: 'mailto:support@pikwisely.site', label: 'Contact' },
+  { href: 'mailto:supportpikwisely@gmail.com', label: 'Contact' },
   { href: '/refund-policy', label: 'Refund Policy' },
   { href: '/privacy-policy', label: 'Privacy Policy' },
   { href: '/terms', label: 'Terms' },
