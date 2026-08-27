@@ -77,10 +77,13 @@ export async function POST(req: Request) {
         expiryDate.setDate(now.getDate() + 30);
         
         // Update user's profile
+        // Workaround: Database enum plan_tier is missing 'starter', map to 'pro'
+        const dbPlan = plan === 'starter' ? 'pro' : plan;
+
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({
-            plan: plan,
+            plan: dbPlan,
             reports_limit: credits,
             reports_used: 0,
             plan_purchased_date: now.toISOString(),

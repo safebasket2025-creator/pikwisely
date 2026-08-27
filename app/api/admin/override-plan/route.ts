@@ -75,9 +75,13 @@ export async function POST(req: NextRequest) {
     const PLAN_LIMITS: Record<ValidPlan, number> = { free: 3, starter: 40, pro: 150 };
     const newLimit = PLAN_LIMITS[validPlan];
 
+    // Workaround for DB `plan_tier` ENUM missing 'starter'
+    // Frontend UI determines plan primarily by `reports_limit` anyway.
+    const dbPlan = validPlan === 'starter' ? 'pro' : validPlan;
+
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
-      .update({ plan: validPlan, reports_limit: newLimit, reports_used: 0 })
+      .update({ plan: dbPlan, reports_limit: newLimit, reports_used: 0 })
       .eq('id', targetProfile.id);
 
     if (updateError) {
