@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create payment order. Please try again.' }, { status: 502 });
     }
 
+    console.log('[DIAGNOSTIC] Razorpay Order Created:', data.id);
     return NextResponse.json({ order_id: data.id }, { status: 200 });
   } catch (error: unknown) {
     console.error('[create-order] Unhandled error:', error);

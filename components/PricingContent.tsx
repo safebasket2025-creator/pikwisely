@@ -104,6 +104,8 @@ export default function PricingContent() {
         throw new Error(data.error || 'Failed to create order');
       }
 
+      console.log('[DIAGNOSTIC] Using Razorpay Key:', clientEnv.NEXT_PUBLIC_RAZORPAY_KEY_ID?.substring(0, 12) + '...');
+
       const options = {
         key: clientEnv.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: plan === 'starter' ? 49900 : 149900,
