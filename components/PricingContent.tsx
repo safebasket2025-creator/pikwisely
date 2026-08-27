@@ -114,6 +114,25 @@ export default function PricingContent() {
         prefill: {
           email: user?.email
         },
+        config: {
+          display: {
+            blocks: {
+              main: {
+                name: "Choose Payment Method",
+                instruments: [
+                  { method: "upi" },
+                  { method: "card" },
+                  { method: "netbanking" },
+                  { method: "wallet" }
+                ]
+              }
+            },
+            sequence: ["block.main"],
+            preferences: {
+              show_default_blocks: false
+            }
+          }
+        },
         handler: function (response: any) {
           // payment success
           alert('Payment successful! Redirecting to dashboard...');
