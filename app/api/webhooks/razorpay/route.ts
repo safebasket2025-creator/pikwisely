@@ -65,6 +65,7 @@ export async function POST(req: Request) {
       }
       
       const userEmail = profile?.email || null;
+      const isTestPayment = serverEnv.RAZORPAY_KEY_ID?.startsWith('rzp_test') || false;
 
       if (event.event === 'payment.captured') {
         // Amount verification - prevent orderless checkout manipulation
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
             plan: plan,
             status: 'flagged', // Flagged for manual review
             razorpay_payment_id: paymentId,
+            is_test_payment: isTestPayment,
             created_at: new Date().toISOString()
           });
           
@@ -130,6 +132,7 @@ export async function POST(req: Request) {
           plan: plan,
           status: 'success',
           razorpay_payment_id: paymentId,
+          is_test_payment: isTestPayment,
           created_at: now.toISOString()
         });
         
@@ -142,6 +145,7 @@ export async function POST(req: Request) {
           plan: plan,
           status: 'failed',
           razorpay_payment_id: paymentId,
+          is_test_payment: isTestPayment,
           created_at: new Date().toISOString()
         });
       }

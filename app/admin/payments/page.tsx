@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase-server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { serverEnv } from '@/lib/env';
+import TestToggle from './TestToggle';
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const showTest = resolvedSearchParams?.test === 'true';
   const supabase = await createClient();
 
   const supabaseAdmin = createSupabaseClient(
@@ -14,11 +21,17 @@ export default async function AdminPaymentsPage() {
   let error: string | null = null;
 
   try {
-    const { data, error: pErr } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('payments')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50);
+
+    if (!showTest) {
+      query = query.eq('is_test_payment', false);
+    }
+
+    const { data, error: pErr } = await query;
 
     if (pErr) {
       if (pErr.code === 'PGRST205' || pErr.code === '42P01') {
@@ -35,9 +48,12 @@ export default async function AdminPaymentsPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', marginBottom: 24, letterSpacing: '-0.02em' }}>
-        Payments
-      </h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+          Payments
+        </h1>
+        <TestToggle />
+      </div>
 
       {error ? (
         <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, marginBottom: 24, color: '#991b1b' }}>
