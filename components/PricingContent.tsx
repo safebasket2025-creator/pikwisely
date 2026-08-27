@@ -114,6 +114,11 @@ export default function PricingContent() {
         prefill: {
           email: user?.email
         },
+        modal: {
+          ondismiss: function() {
+            setIsLoading(false);
+          }
+        },
         handler: function (response: any) {
           // payment success
           alert('Payment successful! Redirecting to dashboard...');
@@ -123,6 +128,10 @@ export default function PricingContent() {
           color: '#6366f1'
         }
       };
+
+      // Force cleanup of any stale Razorpay instances/iframes from previous attempts
+      const existingContainers = document.querySelectorAll('.razorpay-container');
+      existingContainers.forEach(el => el.remove());
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (response: any){
