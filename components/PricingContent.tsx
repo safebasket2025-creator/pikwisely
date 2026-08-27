@@ -133,6 +133,12 @@ export default function PricingContent() {
             }
           }
         },
+        offers: [],
+        features: {
+          offers: {
+            list: []
+          }
+        },
         handler: function (response: any) {
           // payment success
           alert('Payment successful! Redirecting to dashboard...');
