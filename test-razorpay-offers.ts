@@ -15,7 +15,7 @@ async function testOrder() {
       amount: 49900,
       currency: 'INR',
       receipt: 'test_receipt',
-      offers: ["offer_invalidid123"] // Trying to pass an empty array to disable offers
+      offers: []
     }),
   });
 
