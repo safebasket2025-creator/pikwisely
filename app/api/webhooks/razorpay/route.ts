@@ -67,10 +67,36 @@ export async function POST(req: Request) {
       const userEmail = profile?.email || null;
 
       if (event.event === 'payment.captured') {
-        // Set credits based on plan
+        // Amount verification - prevent orderless checkout manipulation
+        let expectedAmount = 0;
         let credits = 3; // Default fallback
-        if (plan === 'starter') credits = 40;
-        if (plan === 'pro') credits = 150;
+        
+        if (plan === 'starter') {
+          credits = 40;
+          expectedAmount = 49900;
+        } else if (plan === 'pro') {
+          credits = 150;
+          expectedAmount = 149900;
+        }
+
+        const actualAmountPaise = paymentEntity.amount || 0;
+        
+        // If amount doesn't match the plan's expected amount, flag it and abort upgrade
+        if (actualAmountPaise !== expectedAmount) {
+          console.warn(`[Webhook] Mismatched payment amount for ${plan}. Expected: ${expectedAmount}, Got: ${actualAmountPaise}`);
+          
+          await supabaseAdmin.from('payments').insert({
+            user_id: userId,
+            user_email: userEmail,
+            amount: actualAmountPaise / 100, // storing in INR
+            plan: plan,
+            status: 'flagged', // Flagged for manual review
+            razorpay_payment_id: paymentId,
+            created_at: new Date().toISOString()
+          });
+          
+          return NextResponse.json({ error: 'Payment amount mismatch. Flagged for review.' }, { status: 400 });
+        }
         
         const now = new Date();
         const expiryDate = new Date(now);
@@ -100,7 +126,7 @@ export async function POST(req: Request) {
         await supabaseAdmin.from('payments').insert({
           user_id: userId,
           user_email: userEmail,
-          amount: amount,
+          amount: actualAmountPaise / 100, // storing in INR
           plan: plan,
           status: 'success',
           razorpay_payment_id: paymentId,
