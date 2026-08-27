@@ -80,7 +80,8 @@ export async function POST(req: Request) {
           expectedAmount = 149900;
         }
 
-        const actualAmountPaise = paymentEntity.amount || 0;
+        // Use base_amount if an offer was applied, otherwise fallback to amount.
+        const actualAmountPaise = paymentEntity.base_amount || paymentEntity.amount || 0;
         
         // If amount doesn't match the plan's expected amount, flag it and abort upgrade
         if (actualAmountPaise !== expectedAmount) {
