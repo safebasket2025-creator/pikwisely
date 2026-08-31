@@ -310,37 +310,66 @@ export default function AnalyzePage() {
           </div>
 
           <div style={{ marginTop: 14 }}>
-            <button
-              id="copy-tip-toggle"
-              type="button"
-              aria-expanded={tipOpen}
-              aria-controls="copy-tip-body"
-              onClick={() => setTipOpen(o => !o)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '4px 6px', borderRadius: 8,
-                fontSize: '0.8rem', fontWeight: 600,
-                color: '#6366f1', fontFamily: 'inherit',
-                transition: 'color 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#4f46e5')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#6366f1')}
-            >
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5"
-                aria-hidden="true"
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <button
+                id="copy-tip-toggle"
+                type="button"
+                aria-expanded={tipOpen}
+                aria-controls="copy-tip-body"
+                onClick={() => setTipOpen(o => !o)}
                 style={{
-                  transition: 'transform 0.25s ease',
-                  transform: tipOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                  flexShrink: 0,
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '4px 6px', borderRadius: 8,
+                  fontSize: '0.8rem', fontWeight: 600,
+                  color: '#6366f1', fontFamily: 'inherit',
+                  transition: 'color 0.2s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#4f46e5')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6366f1')}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
-              </svg>
-              How to copy reviews
-            </button>
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5"
+                  aria-hidden="true"
+                  style={{
+                    transition: 'transform 0.25s ease',
+                    transform: tipOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+                How to copy reviews
+              </button>
+
+              <a
+                href="https://youtu.be/n2CeIIGuadg?si=G_AwrfDFeq4YGHg2"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  textDecoration: 'none',
+                  padding: '4px 6px', borderRadius: 8,
+                  fontSize: '0.8rem', fontWeight: 600,
+                  color: '#6366f1', fontFamily: 'inherit',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#4f46e5')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6366f1')}
+              >
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5"
+                  aria-hidden="true"
+                  style={{ flexShrink: 0 }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Watch Demo
+              </a>
+            </div>
 
             <div
               id="copy-tip-body"
