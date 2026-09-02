@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
 
     // ── Parse & validate body ──────────────────────────────────────────────────
     const body = await req.json();
-    const { email, amount, reason } = body;
+    const { email: targetEmail, amount, reason } = body;
 
     // Email format
-    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!targetEmail || typeof targetEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail.trim())) {
       return NextResponse.json({ error: 'A valid target email address is required.' }, { status: 400 });
     }
 
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const { data: targetProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, reports_limit')
-      .eq('email', email.trim().toLowerCase())
+      .eq('email', targetEmail.trim().toLowerCase())
       .single();
 
     if (profileError || !targetProfile) {
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       .from('admin_actions')
       .insert({
         admin_email:       email,
-        target_user_email: email.trim().toLowerCase(),
+        target_user_email: targetEmail.trim().toLowerCase(),
         action_type:       'credit_adjustment',
         amount_changed:    amount,
         reason:            reason.trim(),

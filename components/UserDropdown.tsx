@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import type { UserResource } from '@clerk/types';
 
 interface UserDropdownProps {
-  user: UserResource;
+  user: any;
   profile: any;
   onSignOut: () => void;
   signingOut: boolean;
