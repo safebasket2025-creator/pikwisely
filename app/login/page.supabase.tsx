@@ -289,7 +289,7 @@ function LoginContent() {
           {/* Toggle link */}
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: '0.85rem', color: '#64748b', fontWeight: 400 }}>
             Don&apos;t have an account?{' '}
-            <Link href="/signup" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/sign-up" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
               Sign up
             </Link>
           </p>

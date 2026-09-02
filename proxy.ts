@@ -3,8 +3,8 @@
  *
  * Runs on every request (Edge Runtime).
  * - Refreshes Supabase session cookies so they don't expire mid-session.
- * - Protects /dashboard: unauthenticated users → /login
- * - Redirects logged-in users away from /login and /signup → /dashboard
+ * - Protects /dashboard: unauthenticated users → /sign-in
+ * - Redirects logged-in users away from /sign-in and /sign-up → /dashboard
  */
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
@@ -42,15 +42,15 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Protected routes — redirect unauthenticated users to /login
-  if (!user && pathname.startsWith('/dashboard')) {
+  // Protected routes — redirect unauthenticated users to /sign-in
+  if (!user && (pathname.startsWith('/dashboard') || pathname.startsWith('/history') || pathname.startsWith('/admin'))) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/login';
+    redirectUrl.pathname = '/sign-in';
     return NextResponse.redirect(redirectUrl);
   }
 
   // Auth routes — redirect already-authenticated users to /dashboard
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  if (user && (pathname === '/sign-in' || pathname === '/sign-up')) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/dashboard';
     return NextResponse.redirect(redirectUrl);

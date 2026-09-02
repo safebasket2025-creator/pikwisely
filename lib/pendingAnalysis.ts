@@ -5,7 +5,7 @@
  *
  * Flow:
  *  1. User pastes input and clicks Analyze Now while logged out.
- *  2. HomePage saves the input here, then redirects to /signup or /login.
+ *  2. HomePage saves the input here, then redirects to /sign-up or /sign-in.
  *  3. After successful auth, the user is redirected back to /.
  *  4. HomePage reads the saved input on mount, restores it into the input
  *     box, clears storage, and auto-triggers the analysis.

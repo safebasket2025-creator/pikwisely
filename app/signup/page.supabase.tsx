@@ -86,8 +86,8 @@ export default function SignUpPage() {
       password: form.password,
       options: {
         data: { full_name: form.fullName.trim() },
-        // After clicking the verification link, land on /login?verified=true
-        emailRedirectTo: `${window.location.origin}/login?verified=true`,
+        // After clicking the verification link, land on /sign-in?verified=true
+        emailRedirectTo: `${window.location.origin}/sign-in?verified=true`,
       },
     });
 
@@ -120,7 +120,7 @@ export default function SignUpPage() {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: verifiedEmail,
-      options: { emailRedirectTo: `${window.location.origin}/login?verified=true` },
+      options: { emailRedirectTo: `${window.location.origin}/sign-in?verified=true` },
     });
     setResendLoading(false);
     if (!error) {
@@ -279,7 +279,7 @@ export default function SignUpPage() {
               {/* Log in nudge */}
               <p style={{ fontSize: '0.78rem', color: '#6b7280', fontWeight: 400 }}>
                 Already verified?{' '}
-                <Link href="/login" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
+                <Link href="/sign-in" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
                   Log in →
                 </Link>
               </p>
@@ -402,7 +402,7 @@ export default function SignUpPage() {
               {/* Toggle link */}
               <p style={{ textAlign: 'center', marginTop: 24, fontSize: '0.85rem', color: '#64748b', fontWeight: 400 }}>
                 Already have an account?{' '}
-                <Link href="/login" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
+                <Link href="/sign-in" style={{ color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>
                   Log in
                 </Link>
               </p>
