@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { serverEnv } from '@/lib/env';
 import { adminRatelimit } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabaseSessionClient = await createClient();
-    const { data: { session } } = await supabaseSessionClient.auth.getSession();
+    const { userId } = await auth();
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
 
-    if (!session?.user?.email) {
+    if (!userId || !email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
-    const isAdmin = adminEmails.includes(session.user.email.toLowerCase());
+    const isAdmin = adminEmails.includes(email.toLowerCase());
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
 
     // ── Rate limiting ──────────────────────────────────────────────────────────
     try {
-      const { success } = await adminRatelimit.limit(session.user.id);
+      const { success } = await adminRatelimit.limit(userId);
       if (!success) {
         return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
       }

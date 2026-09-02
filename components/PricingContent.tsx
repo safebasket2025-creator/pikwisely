@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useUser } from '@clerk/nextjs';
 import Script from 'next/script';
 import { clientEnv } from '@/lib/env';
 import FAQ from './FAQ';
@@ -59,26 +59,15 @@ const plans = [
 ];
 export default function PricingContent() {
   const router = useRouter();
-  const supabase = createClient();
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoaded, isSignedIn } = useUser();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      if (session?.user) {
-        setUser(session.user);
-      }
-    });
-  }, [supabase]);
 
   const handlePlanClick = async (e: React.MouseEvent, planName: string) => {
     e.preventDefault();
-    if (isLoggedIn === null) return; // wait for session
+    if (!isLoaded) return; // wait for session
 
-    if (!isLoggedIn) {
-      router.push('/signup');
+    if (!isSignedIn) {
+      router.push('/sign-up');
       return;
     }
 
@@ -112,7 +101,7 @@ export default function PricingContent() {
         description: `Upgrade to ${planName} Plan`,
         order_id: data.order_id,
         prefill: {
-          email: user?.email
+          email: user?.primaryEmailAddress?.emailAddress
         },
         handler: function (response: any) {
           // payment success

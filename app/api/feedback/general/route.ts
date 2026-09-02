@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import { publicRatelimit, getIP, rateLimitHeaders } from '@/lib/rate-limit';
 
 // ─── Allowed feedback categories ───────────────────────────────────────────────
@@ -76,10 +77,13 @@ export async function POST(request: NextRequest) {
       : 'Unknown';
 
     // ── Get current user if logged in ──────────────────────────────────────────
-    const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    const user_id    = session?.user?.id    || null;
-    const user_email = session?.user?.email || null;
+    const { userId, getToken } = await auth();
+    const clerkUser = await currentUser();
+    const token = await getToken({ template: 'supabase' });
+    const supabase = createClerkSupabaseClient(token);
+    
+    const user_id    = userId || null;
+    const user_email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
 
     // ── Insert into general_feedback ───────────────────────────────────────────
     const { error } = await supabase

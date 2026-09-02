@@ -8,7 +8,8 @@
 
 import { useState } from 'react';
 import type { GroqAnalysisResult } from '@/lib/groq';
-import { createClient } from '@/lib/supabase';
+import { useAuth } from '@clerk/nextjs';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 
 export interface AnalysisResultProps extends GroqAnalysisResult {
   reportId?:         string | null;
@@ -268,19 +269,20 @@ function FloatCard({
 export default function AnalysisResult(props: AnalysisResultProps) {
   const [feedbackGiven, setFeedbackGiven] = useState(false);
   const [feedbackError, setFeedbackError] = useState(false);
+  const { getToken, userId } = useAuth();
 
   const handleFeedback = async (rating: 'helpful' | 'not_helpful') => {
     const idToUse = props.reportId || props.analysisId;
     if (!idToUse) return;
     
     setFeedbackError(false);
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!userId) return;
+    const token = await getToken({ template: 'supabase' });
+    const supabase = createClerkSupabaseClient(token);
     
     const { error } = await supabase.from('report_feedback').insert({
       report_id: idToUse,
-      user_id: session.user.id,
+      user_id: userId,
       rating
     });
 

@@ -3,30 +3,31 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { useUser, useAuth, useClerk } from '@clerk/nextjs';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import UserDropdown from './UserDropdown';
 
 export default function AppNavbar() {
   const router = useRouter();
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const [profile, setProfile] = useState<any>(null);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
-      if (data.user) {
-        supabase.from('profiles').select('*').eq('id', data.user.id).single()
+    if (isSignedIn && user) {
+      getToken({ template: 'supabase' }).then(token => {
+        const supabase = createClerkSupabaseClient(token);
+        supabase.from('profiles').select('*').eq('id', user.id).single()
           .then(({ data: p }) => setProfile(p));
-      }
-    });
-  }, [supabase]);
+      });
+    }
+  }, [isSignedIn, user, getToken]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
-    await supabase.auth.signOut();
+    await signOut();
     router.push('/');
     router.refresh();
   };

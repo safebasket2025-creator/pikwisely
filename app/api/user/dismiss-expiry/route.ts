@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { auth } from '@clerk/nextjs/server';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 
 export async function POST() {
   try {
-    const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { userId, getToken } = await auth();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const token = await getToken({ template: 'supabase' });
+    const supabase = createClerkSupabaseClient(token);
 
     const { error } = await supabase
       .from('profiles')
       .update({ notified_plan_expiry: false })
-      .eq('id', session.user.id);
+      .eq('id', userId);
 
     if (error) {
       console.error('Error dismissing expiry banner:', error);

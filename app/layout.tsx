@@ -26,6 +26,7 @@ export const metadata: Metadata = {
   ],
 };
 
+import { ClerkProvider } from '@clerk/nextjs';
 import GeneralFeedbackButton from '@/components/GeneralFeedbackButton';
 
 export default function RootLayout({
@@ -34,11 +35,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
-        {children}
-        <GeneralFeedbackButton />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={inter.variable} suppressHydrationWarning>
+        <body className="antialiased" suppressHydrationWarning>
+          {children}
+          <GeneralFeedbackButton />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

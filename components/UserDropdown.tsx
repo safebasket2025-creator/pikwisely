@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
+import type { UserResource } from '@clerk/types';
 
 interface UserDropdownProps {
-  user: User;
+  user: UserResource;
   profile: any;
   onSignOut: () => void;
   signingOut: boolean;
@@ -36,9 +36,9 @@ export default function UserDropdown({ user, profile, onSignOut, signingOut }: U
     };
   }, [open]);
 
-  const avatarUrl = user.user_metadata?.avatar_url;
-  const fullName = user.user_metadata?.full_name || '';
-  const email = user.email || '';
+  const avatarUrl = user.imageUrl;
+  const fullName = user.fullName || '';
+  const email = user.primaryEmailAddress?.emailAddress || '';
   const initial = fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase();
 
   const limit = profile?.reports_limit;
@@ -74,8 +74,8 @@ export default function UserDropdown({ user, profile, onSignOut, signingOut }: U
       renewalText = 'Paid plan';
     }
   } else {
-    // Free plan resets based on signup date (created_at)
-    const signupDateStr = profile?.created_at || user.created_at;
+    // Free plan resets based on signup date (createdAt)
+    const signupDateStr = profile?.created_at || user.createdAt;
     const signupDate = signupDateStr ? new Date(signupDateStr) : new Date();
     const resetDay = signupDate.getDate();
     

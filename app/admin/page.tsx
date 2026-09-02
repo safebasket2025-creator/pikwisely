@@ -1,9 +1,7 @@
-import { createClient } from '@/lib/supabase-server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { serverEnv } from '@/lib/env';
 
 export default async function AdminOverviewPage() {
-  const supabase = await createClient();
 
   // We need to bypass RLS to count all users and reports
   const supabaseAdmin = createSupabaseClient(

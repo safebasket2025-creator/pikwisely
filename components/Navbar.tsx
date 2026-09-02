@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { useUser, useAuth, useClerk } from '@clerk/nextjs';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import UserDropdown from './UserDropdown';
 
 interface NavbarProps {
@@ -15,14 +15,14 @@ interface NavbarProps {
 export default function Navbar({ activePage }: NavbarProps) {
   const pathname = usePathname();
   const router   = useRouter();
-  const [user, setUser]             = useState<User | null>(null);
-  const [profile, setProfile]       = useState<any>(null);
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
+  const { signOut } = useClerk();
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading]       = useState(true);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [scrolled, setScrolled]     = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-
-  const supabase = createClient();
 
   // Track scroll for navbar appearance
   useEffect(() => {
@@ -33,32 +33,28 @@ export default function Navbar({ activePage }: NavbarProps) {
 
   // Get current session
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
-      if (data.user) {
-        supabase.from('profiles').select('*').eq('id', data.user.id).single()
-          .then(({ data: p }) => setProfile(p));
-      }
-      setLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          .then(({ data: p }) => setProfile(p));
+    if (isLoaded) {
+      if (isSignedIn && user) {
+        getToken({ template: 'supabase' }).then(token => {
+          const supabase = createClerkSupabaseClient(token);
+          supabase.from('profiles').select('*').eq('id', user.id).single()
+            .then(({ data: p }) => {
+              setProfile(p);
+              setLoading(false);
+            });
+        });
       } else {
         setProfile(null);
+        setLoading(false);
       }
-    });
-    return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    }
+  }, [isLoaded, isSignedIn, user, getToken]);
 
   const [dismissedBanner, setDismissedBanner] = useState(false);
 
   const handleSignOut = async () => {
     setSigningOut(true);
-    await supabase.auth.signOut();
+    await signOut();
     router.push('/');
     router.refresh();
   };
@@ -149,9 +145,9 @@ export default function Navbar({ activePage }: NavbarProps) {
                   </>
                 ) : (
                   <>
-                    <Link href="/login" className="hidden md:block nav-link">Sign in</Link>
+                    <Link href="/sign-in" className="hidden md:block nav-link">Sign in</Link>
                     <Link
-                      href="/signup"
+                      href="/sign-up"
                       className="hidden md:inline-flex"
                       style={{
                         padding: '8px 18px', borderRadius: 12,
@@ -222,8 +218,8 @@ export default function Navbar({ activePage }: NavbarProps) {
             </div>
           ) : (
             <div className="mt-4 flex flex-col gap-3">
-              <Link href="/login" onClick={() => setMenuOpen(false)} className="w-full text-center py-2.5 rounded-xl font-bold text-indigo-600 bg-indigo-50 border border-indigo-100">Sign in</Link>
-              <Link href="/signup" onClick={() => setMenuOpen(false)} className="w-full text-center py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-lg shadow-indigo-500/30">Try Free</Link>
+              <Link href="/sign-in" onClick={() => setMenuOpen(false)} className="w-full text-center py-2.5 rounded-xl font-bold text-indigo-600 bg-indigo-50 border border-indigo-100">Sign in</Link>
+              <Link href="/sign-up" onClick={() => setMenuOpen(false)} className="w-full text-center py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-lg shadow-indigo-500/30">Try Free</Link>
             </div>
           )}
         </div>

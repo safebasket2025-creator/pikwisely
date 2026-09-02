@@ -3,12 +3,12 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useAuth } from '@clerk/nextjs';
 import FAQ from './FAQ';
 
 export default function HomePage() {
   const router      = useRouter();
-  const supabase    = createClient();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {    // Scroll-reveal for sections
     const revealEls = document.querySelectorAll<HTMLElement>('.reveal');
@@ -55,9 +55,8 @@ export default function HomePage() {
   }, []);
 
   const handleStartAnalyzing = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push('/signup');
+    if (!isSignedIn) {
+      router.push('/sign-up');
     } else {
       router.push('/analyze');
     }

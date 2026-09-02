@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import { getPendingInput, clearPendingInput } from '@/lib/pendingAnalysis';
 import AnalysisResult, { type AnalysisResultProps } from '@/components/AnalysisResult';
 
@@ -14,9 +15,10 @@ export default function AnalyzePage() {
   const inputRef    = useRef<HTMLTextAreaElement>(null);
   const ctaBtnRef   = useRef<HTMLButtonElement>(null);
   const router      = useRouter();
-  const supabase    = createClient();
+  
+  const { isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
 
-  const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [reportsUsed, setReportsUsed] = useState<number | null>(null);
   const [reportsLimit, setReportsLimit] = useState<number | null>(null);
@@ -32,22 +34,27 @@ export default function AnalyzePage() {
   const [analyzeWarning, setAnalyzeWarning] = useState<string>('');
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push('/login');
-      } else {
-        setUser(data.user);
-        supabase.from('profiles').select('reports_used, reports_limit').eq('id', data.user.id).single()
-          .then(({ data: profile }) => {
-            if (profile) {
-              setReportsUsed(profile.reports_used);
-              setReportsLimit(profile.reports_limit);
-            }
-            setAuthLoading(false);
-          });
+    if (!isLoaded) return;
+    
+    if (!isSignedIn) {
+      router.push('/sign-in');
+      return;
+    }
+    
+    async function loadProfile() {
+      const token = await getToken({ template: 'supabase' });
+      const supabase = createClerkSupabaseClient(token);
+      
+      const { data: profile } = await supabase.from('profiles').select('reports_used, reports_limit').single();
+      if (profile) {
+        setReportsUsed(profile.reports_used);
+        setReportsLimit(profile.reports_limit);
       }
-    });
-  }, [router, supabase]);
+      setAuthLoading(false);
+    }
+    
+    loadProfile();
+  }, [isLoaded, isSignedIn, router, getToken]);
 
   const triggerAnalyze = async (val: string) => {
     const btn = ctaBtnRef.current;
@@ -134,12 +141,7 @@ export default function AnalyzePage() {
     triggerAnalyze(val);
   };
 
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
-  };
+
 
   const downloadPdf = async () => {
     setDownloadError(null);

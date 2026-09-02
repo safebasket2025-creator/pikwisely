@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import Navbar from '@/components/Navbar';
 import AnalysisResult from '@/components/AnalysisResult';
 import type { GroqAnalysisResult } from '@/lib/groq';
@@ -17,24 +18,29 @@ type ReportRow = {
 
 export default function HistoryPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
+  
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [isFreePlan, setIsFreePlan] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
+    
+    if (!isSignedIn) {
+      router.push('/sign-in');
+      return;
+    }
+
     async function loadHistory() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
+      const token = await getToken({ template: 'supabase' });
+      const supabase = createClerkSupabaseClient(token);
       
       const { data: profile } = await supabase
         .from('profiles')
         .select('reports_limit')
-        .eq('id', session.user.id)
         .single();
         
       if (profile?.reports_limit === 3) {
@@ -46,7 +52,6 @@ export default function HistoryPage() {
       const { data: reportsData } = await supabase
         .from('reports')
         .select('*')
-        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
         
       if (reportsData) {
@@ -56,7 +61,7 @@ export default function HistoryPage() {
       setLoading(false);
     }
     loadHistory();
-  }, [router, supabase]);
+  }, [isLoaded, isSignedIn, router, getToken]);
 
   if (loading) {
     return (

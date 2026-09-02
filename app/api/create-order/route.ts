@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { auth } from '@clerk/nextjs/server';
 import { serverEnv } from '@/lib/env';
 import { publicRatelimit, getIP, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Auth check — get userId from session, not from client body ──────────────
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { userId } = await auth();
 
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    const user = { id: userId };
 
     // ── Parse & validate body ──────────────────────────────────────────────────
     let body: { plan?: unknown };

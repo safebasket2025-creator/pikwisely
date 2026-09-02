@@ -17,7 +17,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient }              from '@/lib/supabase-server';
+import { auth } from '@clerk/nextjs/server';
+import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import { analyzeReviews }            from '@/lib/groq';
 import { analyzeRatelimit, publicRatelimit, getIP, rateLimitHeaders } from '@/lib/rate-limit';
 
@@ -25,8 +26,11 @@ import { analyzeRatelimit, publicRatelimit, getIP, rateLimitHeaders } from '@/li
 
 export async function POST(req: NextRequest) {
   // ── 1. Auth check ─────────────────────────────────────────────────────────────
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { userId, getToken } = await auth();
+  const token = await getToken({ template: 'supabase' });
+  const supabase = createClerkSupabaseClient(token);
+  const user = userId ? { id: userId } : null;
+  const authError = !userId;
 
   if (authError || !user) {
     return NextResponse.json(

@@ -2,16 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase';
+import { useClerk } from '@clerk/nextjs';
 
 export default function SignOutButton() {
   const router = useRouter();
-  const supabase = createClient();
+  const { signOut } = useClerk();
   const [loading, setLoading] = useState(false);
 
   const handleSignOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    await signOut();
     router.push('/');
     router.refresh();
   };

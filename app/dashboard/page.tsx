@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase-server';
+import { currentUser } from '@clerk/nextjs/server';
 import AppNavbar from '@/components/AppNavbar';
 
 export const metadata: Metadata = {
@@ -10,17 +10,16 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
 
   // Middleware protects this route, but double-check server-side
   if (!user) {
-    redirect('/login');
+    redirect('/sign-in');
   }
 
   const displayName =
-    (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
-    user.email?.split('@')[0] ||
+    user.firstName ||
+    user.emailAddresses?.[0]?.emailAddress?.split('@')[0] ||
     'there';
 
   return (
