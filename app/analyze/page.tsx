@@ -44,8 +44,25 @@ export default function AnalyzePage() {
     async function loadProfile() {
       const token = await getToken({ template: 'supabase' });
       const supabase = createClerkSupabaseClient(token);
-      
-      const { data: profile } = await supabase.from('profiles').select('reports_used, reports_limit').single();
+
+      let { data: profile } = await supabase
+        .from('profiles')
+        .select('reports_used, reports_limit')
+        .single();
+
+      if (!profile) {
+        // Webhook may have failed — auto-create the profile row via server endpoint
+        try {
+          const res = await fetch('/api/user/ensure-profile', { method: 'POST' });
+          if (res.ok) {
+            const created = await res.json();
+            profile = { reports_used: created.reports_used, reports_limit: created.reports_limit };
+          }
+        } catch (e) {
+          console.error('[analyze] ensure-profile failed:', e);
+        }
+      }
+
       if (profile) {
         setReportsUsed(profile.reports_used);
         setReportsLimit(profile.reports_limit);

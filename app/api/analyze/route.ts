@@ -17,10 +17,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { createClient } from '@supabase/supabase-js';
 import { createClerkSupabaseClient } from '@/lib/supabase-clerk';
 import { analyzeReviews }            from '@/lib/groq';
 import { analyzeRatelimit, publicRatelimit, getIP, rateLimitHeaders } from '@/lib/rate-limit';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
@@ -102,14 +108,49 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 5. Credit check & deduction ───────────────────────────────────────────────
-  const { data: profile, error: profileError } = await supabase
+  let { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('reports_used, reports_limit')
     .eq('id', user.id)
     .single();
 
-  if (profileError || !profile) {
+  // If profile is missing (webhook failed to create it), auto-create it now
+  if (!profile && profileError?.code === 'PGRST116') {
+    console.warn('[analyze] Profile missing for', user.id, '— auto-creating via ensure-profile');
+    const clerkUser = await currentUser();
+    const email     = clerkUser?.emailAddresses?.[0]?.emailAddress ?? '';
+    const full_name = `${clerkUser?.firstName ?? ''} ${clerkUser?.lastName ?? ''}`.trim();
+
+    // Handle relink case: email exists with old ID
+    const { data: byEmail } = await supabaseAdmin
+      .from('profiles')
+      .select('id, reports_used, reports_limit')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (byEmail && byEmail.id !== user.id) {
+      await supabaseAdmin.from('profiles').update({ id: user.id }).eq('email', email);
+      profile = { reports_used: byEmail.reports_used, reports_limit: byEmail.reports_limit };
+    } else {
+      const { data: created } = await supabaseAdmin
+        .from('profiles')
+        .insert({ id: user.id, email, full_name, plan: 'free', reports_limit: 3, reports_used: 0 })
+        .select('reports_used, reports_limit')
+        .single();
+      profile = created;
+    }
+  }
+
+  if (profileError && profileError.code !== 'PGRST116') {
     console.error('[analyze] Error fetching profile:', profileError);
+    return NextResponse.json(
+      { error: 'Something went wrong. Please try again.' },
+      { status: 500 }
+    );
+  }
+
+  if (!profile) {
+    console.error('[analyze] Could not create profile for', user.id);
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
       { status: 500 }
