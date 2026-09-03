@@ -17,10 +17,21 @@ export default function AppNavbar() {
 
   useEffect(() => {
     if (isSignedIn && user) {
-      getToken({ template: 'supabase' }).then(token => {
+      getToken({ template: 'supabase' }).then(async token => {
         const supabase = createClerkSupabaseClient(token);
-        supabase.from('profiles').select('*').eq('id', user.id).single()
-          .then(({ data: p }) => setProfile(p));
+        let { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+
+        if (!p) {
+          // Webhook may have failed — auto-create the profile row
+          try {
+            const res = await fetch('/api/user/ensure-profile', { method: 'POST' });
+            if (res.ok) p = await res.json();
+          } catch (e) {
+            console.error('[AppNavbar] ensure-profile failed:', e);
+          }
+        }
+
+        setProfile(p);
       });
     }
   }, [isSignedIn, user, getToken]);

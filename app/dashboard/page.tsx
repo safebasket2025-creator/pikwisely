@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { currentUser } from '@clerk/nextjs/server';
+import { createClient } from '@supabase/supabase-js';
 import AppNavbar from '@/components/AppNavbar';
 
 export const metadata: Metadata = {
@@ -9,13 +10,53 @@ export const metadata: Metadata = {
   description: 'Your Pikwisely analysis dashboard.',
 };
 
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export default async function DashboardPage() {
   const user = await currentUser();
 
-  // Middleware protects this route, but double-check server-side
   if (!user) {
     redirect('/sign-in');
   }
+
+  // Fetch profile — auto-create if missing (webhook fallback)
+  let { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('plan, reports_used, reports_limit')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    const email     = user.emailAddresses?.[0]?.emailAddress ?? '';
+    const full_name = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+
+    // Handle relink: email exists with old ID
+    const { data: byEmail } = await supabaseAdmin
+      .from('profiles')
+      .select('id, plan, reports_used, reports_limit')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (byEmail && byEmail.id !== user.id) {
+      await supabaseAdmin.from('profiles').update({ id: user.id }).eq('email', email);
+      profile = { plan: byEmail.plan, reports_used: byEmail.reports_used, reports_limit: byEmail.reports_limit };
+    } else if (!byEmail) {
+      const { data: created } = await supabaseAdmin
+        .from('profiles')
+        .insert({ id: user.id, email, full_name, plan: 'free', reports_limit: 3, reports_used: 0 })
+        .select('plan, reports_used, reports_limit')
+        .single();
+      profile = created;
+    }
+  }
+
+  const reportsUsed  = profile?.reports_used  ?? 0;
+  const reportsLimit = profile?.reports_limit ?? 3;
+  const reportsLeft  = reportsLimit === -1 ? '∞' : String(Math.max(0, reportsLimit - reportsUsed));
+  const planLabel    = reportsLimit === -1 ? 'Pro' : reportsLimit >= 150 ? 'Pro' : reportsLimit > 3 ? 'Starter' : 'Free';
 
   const displayName =
     user.firstName ||
@@ -31,11 +72,8 @@ export default async function DashboardPage() {
       </div>
 
       <div style={{ position: 'relative', zIndex: 10, minHeight: '100vh' }}>
-
-        {/* Navbar */}
         <AppNavbar />
 
-        {/* Main content */}
         <main style={{ maxWidth: 900, margin: '0 auto', padding: '100px 24px 60px' }}>
 
           <div className="animate-fade-up" style={{ marginBottom: 40 }}>
@@ -83,12 +121,12 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {/* Usage stats */}
+          {/* Usage stats — live from DB */}
           <div className="animate-fade-up-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
             {[
-              { label: 'Reports Used', value: '0', sub: 'of 3 this month', accent: '#6366f1' },
-              { label: 'Reports Left', value: '3', sub: 'Free plan', accent: '#10b981' },
-              { label: 'Current Plan', value: 'Free', sub: 'Upgrade for more', accent: '#f59e0b' },
+              { label: 'Reports Used', value: String(reportsUsed), sub: `of ${reportsLimit === -1 ? '∞' : reportsLimit} this month`, accent: '#6366f1' },
+              { label: 'Reports Left', value: reportsLeft,          sub: `${planLabel} plan`,                                         accent: '#10b981' },
+              { label: 'Current Plan', value: planLabel,            sub: 'Upgrade for more',                                          accent: '#f59e0b' },
             ].map(stat => (
               <div key={stat.label} className="glass" style={{ borderRadius: 16, padding: '20px 18px', textAlign: 'center' }}>
                 <p style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, color: '#0f172a', marginBottom: 4, lineHeight: 1 }}>
