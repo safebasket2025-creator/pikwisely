@@ -10,93 +10,91 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(req: Request) {
-  // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
-    throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local');
+    console.error('[clerk-webhook] CLERK_WEBHOOK_SECRET is not set!');
+    return new Response('Webhook secret not configured', { status: 500 });
   }
 
-  // Get the headers
+  // Get the Svix headers
   const headerPayload = await headers();
-  const svix_id = headerPayload.get('svix-id');
+  const svix_id        = headerPayload.get('svix-id');
   const svix_timestamp = headerPayload.get('svix-timestamp');
   const svix_signature = headerPayload.get('svix-signature');
 
-  // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return new Response('Error occured -- no svix headers', {
-      status: 400,
-    });
+    return new Response('Error occured -- no svix headers', { status: 400 });
   }
 
-  // Get the body
   const payload = await req.json();
-  const body = JSON.stringify(payload);
+  const body    = JSON.stringify(payload);
 
-  // Create a new Svix instance with your secret.
   const wh = new Webhook(WEBHOOK_SECRET);
-
   let evt: WebhookEvent;
 
-  // Verify the payload with the headers
   try {
     evt = wh.verify(body, {
-      'svix-id': svix_id,
+      'svix-id':        svix_id,
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
     }) as unknown as WebhookEvent;
   } catch (err) {
-    console.error('Error verifying webhook:', err);
-    return new Response('Error occured', {
-      status: 400,
-    });
+    console.error('[clerk-webhook] Signature verification failed:', err);
+    return new Response('Error occured', { status: 400 });
   }
 
-  // Handle the webhook
   const eventType = evt.type;
+  console.log('[clerk-webhook] Received event:', eventType);
 
   if (eventType === 'user.created') {
-    const { id, email_addresses, first_name, last_name, public_metadata } = evt.data;
-    
-    // If they were migrated, their Supabase ID is in public_metadata
-    // Since we're moving to TEXT ids, we can just use the Clerk ID directly,
-    // OR if you want to keep the old ID, you can use public_metadata.supabase_id
+    const { id, email_addresses, first_name, last_name } = evt.data;
     const primaryEmail = email_addresses[0]?.email_address;
-    
-    // Check if user already exists (in case they signed up before migration or we are updating)
-    const { data: existingUser } = await supabaseAdmin
+    const full_name    = `${first_name || ''} ${last_name || ''}`.trim();
+
+    console.log(`[clerk-webhook] user.created: id=${id} email=${primaryEmail}`);
+
+    // Check if a row already exists for this email (old UUID row from pre-migration)
+    const { data: byEmail } = await supabaseAdmin
       .from('profiles')
       .select('id')
       .eq('email', primaryEmail)
-      .single();
+      .maybeSingle();
 
-    if (existingUser) {
-      // User exists from old Supabase auth but signed up via Clerk (missed migration window)
-      // Update their ID to the new Clerk ID so they retain their credits & history
-      console.log(`[Webhook] Relinking unmigrated user: ${primaryEmail} | Old ID: ${existingUser.id} -> New ID: ${id}`);
-      
-      const { error } = await supabaseAdmin
-        .from('profiles')
-        .update({ id: id })
-        .eq('email', primaryEmail);
-
-      if (error) {
-        console.error('Error updating existing profile ID:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (byEmail) {
+      if (byEmail.id === id) {
+        // Already correct — idempotent, do nothing
+        console.log(`[clerk-webhook] Profile already exists with correct ID for ${primaryEmail}`);
+      } else {
+        // Old UUID row — relink to new Clerk ID
+        console.log(`[clerk-webhook] Relinking ${primaryEmail}: ${byEmail.id} → ${id}`);
+        const { error } = await supabaseAdmin
+          .from('profiles')
+          .update({ id })
+          .eq('email', primaryEmail);
+        if (error) {
+          console.error('[clerk-webhook] Relink error:', error.message);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
       }
     } else {
-      // Create new profile using the Clerk ID as the ID (because we altered the column to TEXT)
+      // Brand new user — insert with ALL fields explicit (do NOT rely on DB defaults)
+      console.log(`[clerk-webhook] Inserting new profile for ${primaryEmail}`);
       const { error } = await supabaseAdmin.from('profiles').insert({
-        id: id,
-        email: primaryEmail,
-        full_name: `${first_name || ''} ${last_name || ''}`.trim(),
+        id,
+        email:         primaryEmail,
+        full_name,
+        plan:          'free',
+        reports_limit: 3,
+        reports_used:  0,
       });
 
       if (error) {
-        console.error('Error creating profile for new Clerk user:', error);
+        console.error('[clerk-webhook] Insert error:', error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      console.log(`[clerk-webhook] ✅ Profile created for ${id} (${primaryEmail})`);
     }
   }
 
