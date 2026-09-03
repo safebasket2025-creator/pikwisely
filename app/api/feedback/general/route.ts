@@ -6,6 +6,8 @@ import { publicRatelimit, getIP, rateLimitHeaders } from '@/lib/rate-limit';
 // ─── Allowed feedback categories ───────────────────────────────────────────────
 const VALID_CATEGORIES = [
   'bug',
+  'slow',
+  'suggestion',
   'feature',
   'pricing',
   'ux',
