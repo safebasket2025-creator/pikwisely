@@ -115,6 +115,9 @@ export default function Navbar({ activePage }: NavbarProps) {
             >
               Pricing
             </Link>
+            <a href="https://youtu.be/n2CeIIGuadg?si=A4dC_XTWVLWZKq6P" target="_blank" rel="noopener noreferrer" className="nav-link">
+              Watch Demo
+            </a>
           </div>
 
           {/* Right side */}
@@ -209,6 +212,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           <Link href="/#how-it-works" onClick={() => setMenuOpen(false)} className="py-2 text-[0.95rem] font-semibold text-slate-700 border-b border-slate-100">How it works</Link>
           <Link href="/#sample-report" onClick={() => setMenuOpen(false)} className="py-2 text-[0.95rem] font-semibold text-slate-700 border-b border-slate-100">Features</Link>
           <Link href="/pricing" onClick={() => setMenuOpen(false)} className={`py-2 text-[0.95rem] font-semibold border-b border-slate-100 ${isPricing ? 'text-indigo-600' : 'text-slate-700'}`}>Pricing</Link>
+          <a href="https://youtu.be/n2CeIIGuadg?si=A4dC_XTWVLWZKq6P" target="_blank" rel="noopener noreferrer" onClick={() => setMenuOpen(false)} className="py-2 text-[0.95rem] font-semibold text-slate-700 border-b border-slate-100">Watch Demo</a>
           
           {user ? (
             <div className="mt-4 flex flex-col gap-3">
